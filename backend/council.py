@@ -118,11 +118,14 @@ Now provide your evaluation and ranking:"""
     messages = [{"role": "user", "content": ranking_prompt}]
 
     # Get rankings from all council models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    # Gather as a list (not a dict keyed by model) so duplicate models work
+    responses = await asyncio.gather(
+        *[query_model(model, messages) for model in COUNCIL_MODELS]
+    )
 
     # Format results
     stage2_results = []
-    for i, (model, response) in enumerate(responses.items()):
+    for i, (model, response) in enumerate(zip(COUNCIL_MODELS, responses)):
         model = _seat_label(i, model)
         if response is not None:
             full_text = response.get('content', '')

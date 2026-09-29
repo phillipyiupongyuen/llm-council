@@ -13,14 +13,10 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 LLM_BACKEND = os.getenv("LLM_BACKEND", "openrouter")
 
 if LLM_BACKEND == "claude_cli":
-    # Model names as accepted by `claude --model`. Must be unique per seat.
-    COUNCIL_MODELS = [
-        "claude-opus-5-5",
-        "claude-fable-5-1",
-        "claude-sonnet-5-5",
-        "claude-haiku-4-5-20251001",
-    ]
-    CHAIRMAN_MODEL = "claude-fable-5-1"
+    # Model names as accepted by `claude --model`. Duplicates are fine;
+    # each seat still gets its own role prompt.
+    COUNCIL_MODELS = ["claude-opus-5-5"] * 4
+    CHAIRMAN_MODEL = "claude-opus-5-5"
 else:
     # Council members - list of OpenRouter model identifiers
     COUNCIL_MODELS = [
