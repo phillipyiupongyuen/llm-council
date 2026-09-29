@@ -17,6 +17,7 @@ if LLM_BACKEND == "claude_cli":
     # each seat still gets its own role prompt.
     COUNCIL_MODELS = ["claude-opus-5-5"] * 4
     CHAIRMAN_MODEL = "claude-opus-5-5"
+    TITLE_MODEL = "claude-haiku-4-5-20251001"
 else:
     # Council members - list of OpenRouter model identifiers
     COUNCIL_MODELS = [
@@ -28,6 +29,7 @@ else:
 
     # Chairman model - synthesizes final response
     CHAIRMAN_MODEL = "anthropic/claude-fable-5.1"
+    TITLE_MODEL = "google/gemini-2.5-flash"
 
 # Product council roles - one per council model (matched by position).
 # Edit freely. Each entry: (display name, system prompt).

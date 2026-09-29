@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any, Tuple
 from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, ROLES, PRODUCT_CONTEXT
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, TITLE_MODEL, ROLES, PRODUCT_CONTEXT
 import asyncio
 
 
@@ -314,8 +314,8 @@ Title:"""
 
     messages = [{"role": "user", "content": title_prompt}]
 
-    # Use gemini-2.5-flash for title generation (fast and cheap)
-    response = await query_model("google/gemini-2.5-flash", messages, timeout=30.0)
+    # Use a fast, cheap model for title generation
+    response = await query_model(TITLE_MODEL, messages, timeout=30.0)
 
     if response is None:
         # Fallback to a generic title

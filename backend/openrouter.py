@@ -1,10 +1,30 @@
 """OpenRouter API client for making LLM requests."""
 
 import asyncio
+import os
+import shutil
 import tempfile
 import httpx
 from typing import List, Dict, Any, Optional
 from .config import OPENROUTER_API_KEY, OPENROUTER_API_URL, LLM_BACKEND
+
+
+def _find_claude() -> str:
+    """Locate the claude executable (the backend may not inherit your shell PATH)."""
+    candidates = [
+        os.getenv("CLAUDE_BIN"),
+        shutil.which("claude"),
+        os.path.expanduser("~/.local/bin/claude"),
+        os.path.expanduser("~/.claude/local/claude"),
+        "/opt/homebrew/bin/claude",
+        "/usr/local/bin/claude",
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c) and os.access(c, os.X_OK):
+            return c
+    raise FileNotFoundError(
+        "claude executable not found; set CLAUDE_BIN in .env to the output of `which claude`"
+    )
 
 
 async def _query_claude_cli(
@@ -28,6 +48,7 @@ async def _query_claude_cli(
         cmd += ["--system-prompt", system]
 
     try:
+        cmd[0] = _find_claude()
         # Run from an empty temp dir so this repo's CLAUDE.md isn't loaded
         with tempfile.TemporaryDirectory() as cwd:
             proc = await asyncio.create_subprocess_exec(
