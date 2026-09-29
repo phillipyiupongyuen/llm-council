@@ -8,16 +8,30 @@ load_dotenv()
 # OpenRouter API key
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# Council members - list of OpenRouter model identifiers
-COUNCIL_MODELS = [
-    "openai/gpt-6-sol",
-    "google/gemini-3.1-pro-preview",
-    "anthropic/claude-opus-5.5",
-    "x-ai/grok-4.7",
-]
+# LLM backend: "openrouter" (pay per token, mixed providers) or
+# "claude_cli" (runs `claude -p`, uses your Claude subscription, Claude-only).
+LLM_BACKEND = os.getenv("LLM_BACKEND", "openrouter")
 
-# Chairman model - synthesizes final response
-CHAIRMAN_MODEL = "anthropic/claude-fable-5.1"
+if LLM_BACKEND == "claude_cli":
+    # Model names as accepted by `claude --model`. Must be unique per seat.
+    COUNCIL_MODELS = [
+        "claude-opus-5-5",
+        "claude-fable-5-1",
+        "claude-sonnet-5-5",
+        "claude-haiku-4-5-20251001",
+    ]
+    CHAIRMAN_MODEL = "claude-fable-5-1"
+else:
+    # Council members - list of OpenRouter model identifiers
+    COUNCIL_MODELS = [
+        "openai/gpt-6-sol",
+        "google/gemini-3.1-pro-preview",
+        "anthropic/claude-opus-5.5",
+        "x-ai/grok-4.7",
+    ]
+
+    # Chairman model - synthesizes final response
+    CHAIRMAN_MODEL = "anthropic/claude-fable-5.1"
 
 # Product council roles - one per council model (matched by position).
 # Edit freely. Each entry: (display name, system prompt).
