@@ -2,7 +2,22 @@
 
 from typing import List, Dict, Any, Tuple
 from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, ROLES, PRODUCT_CONTEXT
+import asyncio
+
+
+def _seat_label(i: int, model: str) -> str:
+    """Display label for a council seat, e.g. 'Customer (openai/gpt-5.1)'."""
+    if i < len(ROLES):
+        return f"{ROLES[i][0]} ({model})"
+    return model
+
+
+def _seat_system(i: int) -> str:
+    base = ROLES[i][1] if i < len(ROLES) else "You are a sharp product critic."
+    return (f"{base}\n\n{PRODUCT_CONTEXT}\n\n"
+            "Format: short bullets. End with your top 3 risks and "
+            "1 cheap experiment to test the riskiest assumption.")
 
 
 async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
@@ -15,17 +30,21 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
     Returns:
         List of dicts with 'model' and 'response' keys
     """
-    messages = [{"role": "user", "content": user_query}]
+    # Each seat gets its own role system prompt
+    tasks = [
+        query_model(model, [
+            {"role": "system", "content": _seat_system(i)},
+            {"role": "user", "content": user_query},
+        ])
+        for i, model in enumerate(COUNCIL_MODELS)
+    ]
+    responses = await asyncio.gather(*tasks)
 
-    # Query all models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
-
-    # Format results
     stage1_results = []
-    for model, response in responses.items():
-        if response is not None:  # Only include successful responses
+    for i, (model, response) in enumerate(zip(COUNCIL_MODELS, responses)):
+        if response is not None:
             stage1_results.append({
-                "model": model,
+                "model": _seat_label(i, model),
                 "response": response.get('content', '')
             })
 
@@ -61,7 +80,7 @@ async def stage2_collect_rankings(
         for label, result in zip(labels, stage1_results)
     ])
 
-    ranking_prompt = f"""You are evaluating different responses to the following question:
+    ranking_prompt = f"""You are evaluating product critiques of the following idea or question:
 
 Question: {user_query}
 
@@ -70,7 +89,11 @@ Here are the responses from different models (anonymized):
 {responses_text}
 
 Your task:
-1. First, evaluate each response individually. For each response, explain what it does well and what it does poorly.
+1. First, evaluate each critique individually. Judge it on:
+   - Most useful objection: does it surface a risk the founder likely hasn't considered?
+   - Specificity: concrete and testable, not generic advice
+   - Actionability: does it suggest a cheap way to find out?
+   Briefly note what each does well and poorly.
 2. Then, at the very end of your response, provide a final ranking.
 
 IMPORTANT: Your final ranking MUST be formatted EXACTLY as follows:
@@ -99,7 +122,8 @@ Now provide your evaluation and ranking:"""
 
     # Format results
     stage2_results = []
-    for model, response in responses.items():
+    for i, (model, response) in enumerate(responses.items()):
+        model = _seat_label(i, model)
         if response is not None:
             full_text = response.get('content', '')
             parsed = parse_ranking_from_text(full_text)
@@ -149,12 +173,25 @@ STAGE 1 - Individual Responses:
 STAGE 2 - Peer Rankings:
 {stage2_text}
 
-Your task as Chairman is to synthesize all of this information into a single, comprehensive, accurate answer to the user's original question. Consider:
-- The individual responses and their insights
-- The peer rankings and what they reveal about response quality
-- Any patterns of agreement or disagreement
+Your task as Chairman is to turn this into a product decision brief. Weight critiques the peers ranked highly. Output exactly these sections, in short bullets:
 
-Provide a clear, well-reasoned final answer that represents the council's collective wisdom:"""
+## Verdict
+One line: pursue, pivot, or park, and why.
+
+## Top risks (ranked)
+Max 5. Note which seats raised each one.
+
+## Where the council disagreed
+The live tensions worth thinking about.
+
+## Open questions
+What we don't know yet.
+
+## Next experiments
+Max 3. Cheapest first. Each with a clear pass/fail signal.
+
+## Ideas worth keeping
+Any strong suggestions or angles surfaced along the way."""
 
     messages = [{"role": "user", "content": chairman_prompt}]
 

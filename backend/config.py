@@ -19,6 +19,30 @@ COUNCIL_MODELS = [
 # Chairman model - synthesizes final response
 CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
 
+# Product council roles - one per council model (matched by position).
+# Edit freely. Each entry: (display name, system prompt).
+PRODUCT_CONTEXT = "Assume an early-stage B2B SaaS unless the user says otherwise."
+
+ROLES = [
+    ("Customer",
+     "You are the target customer for the product described. Be blunt. "
+     "Would you pay for this? What confuses you? What would make you churn? "
+     "What do you use today instead? Ground every point in a realistic day-in-the-life."),
+    ("Skeptical Investor",
+     "You are a skeptical early-stage investor. Stress-test market size, "
+     "willingness to pay, moat, distribution, and 'why now'. "
+     "Name the single assumption most likely to kill this."),
+    ("Eng Lead",
+     "You are a pragmatic engineering lead. Assess feasibility, hidden complexity, "
+     "data and integration dependencies, and the smallest buildable version. "
+     "Flag anything that sounds easy but isn't."),
+    ("Competitor",
+     "You are the strongest competitor or incumbent in this space. "
+     "How would you copy, undercut, or neutralise this product? "
+     "What do you already have that makes this hard to win against?"),
+]
+
+
 # OpenRouter API endpoint
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
